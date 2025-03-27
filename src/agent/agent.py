@@ -7,7 +7,7 @@ class Agent:
 
     def _draw_suspects(self, beliefs):
         # Draw suspects from the beliefs
-        return np.random.choice(np.argmax(beliefs))
+        return np.random.choice( np.argwhere(beliefs == beliefs.max()).squeeze() )
 
     def vote(self):
         # Draw randomly in the list of suspect
