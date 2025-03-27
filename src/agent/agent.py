@@ -1,8 +1,8 @@
 import numpy as np
 
 class Agent:
-    def __init__(self, id, game):
-        self.beliefs = np.ones(game.num_players)
+    def __init__(self, id, num_players):
+        self.beliefs = np.ones(num_players)
         self.beliefs[id] = 0
 
     def _draw_suspects(self, beliefs):
