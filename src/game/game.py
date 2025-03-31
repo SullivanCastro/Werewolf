@@ -6,11 +6,20 @@ import numpy as np
 class Game():
 
     def __init__(self, num_villagers=1, num_wolves=1):
+        """
+        init a game instance.
+        num_villagers:  int     number of villagers in the game
+        num_wolves:     int     number of wolves in the game
+        """
         self.num_villagers = num_villagers
         self.num_wolves = num_wolves
         self.num_players =  self.num_villagers + self.num_wolves
+
+        #dictionaries containing active werewolves and villagers in the game
         self.werewolves = {}
         self.villagers = {}
+
+        # lists including eliminated werewolves and villagers
         self.dead_werewolves = []
         self.dead_villagers = []
 
@@ -23,7 +32,29 @@ class Game():
             self.werewolves[j] = Werewolf(j, self.num_players, self.werewolfs_id, self.villagers_id)
 
         
+    def get_villagers_count(self):
+        """
+        gets current number of villagers
+
+        returns int
+        """
+        return len(self.villagers_id)
     
+    def get_wolves_count(self):
+        """
+        gets current number of werewolves
+
+        returns int
+        """
+        return len(self.werewolfs_id)
+    
+    def get_agents_count(self):
+        """
+        gets current total number of agents
+
+        returns int
+        """
+        return len(self.werewolfs_id) + len(self.villagers_id)
 
     def eliminate_werewolf(self, id):
         """
@@ -46,6 +77,7 @@ class Game():
 
     def calc_inf_metric(self):
         """
+        #TODO  this is currently incomplete. see section 3.4 in report
         Calculates current sum of villagers mean kill will for werewolves
         information propogation metric
 
