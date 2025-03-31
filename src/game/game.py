@@ -1,6 +1,8 @@
 
 from agent.villagers import Villager
 from agent.werewolf import Werewolf
+
+
 class Game():
 
     def __init__(self, num_villagers=1, num_wolves=1):
@@ -9,14 +11,34 @@ class Game():
         self.num_players =  self.num_villagers + self.num_wolves
         self.werewolves = {}
         self.villagers = {}
+
         for i in range(self.num_villagers):
             self.villagers[i] = Villager(i, self.num_players)
+        self.villagers_id = self.villagers.keys()
 
         self.werewolfs_id = range(self.num_villagers-1, self.num_players) #list ids of the werewolfes
-        for j in range(self.werewolfs_id):
-            self.werewolves[j] = Werewolf(j, self.num_players, self.werewolfs_id)
+        for j in self.werewolfs_id:
+            self.werewolves[j] = Werewolf(j, self.num_players, self.werewolfs_id, self.villagers_id)
     
+
+    def eliminate_werewolf(self, id):
+        """
+        elimintes a werewolf with specified id
+        id: int  id of the werewolf to be eliminted
+        """
+        self.werewolves.pop(id)
+        self.werewolfs_id = self.werewolves.keys()
+
+    def eliminate_villager(self, id):
+        """
+        eliminates a villager with specific id
+        id: int  id of the villager to be eliminated
+        """
+        self.villagers.pop(id)
+        self.villagers_id = self.villagers.keys()
+
     def day_shift(self,):
+
         pass
         #do the day shift
 
