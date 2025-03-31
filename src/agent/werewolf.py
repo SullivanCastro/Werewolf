@@ -11,6 +11,7 @@ class Werewolf(Agent):
         villagers_id:  list     list of ids of all villagers in game
         """
         super().__init__(id, num_players)
+        # werewolves belief is different from default and only includes on villagers
         self.beliefs = np.ones(len(villagers_id))
         self.beliefs[id] = 0
         self.beliefs /= np.sum(self.beliefs)
