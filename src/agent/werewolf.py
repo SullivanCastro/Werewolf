@@ -12,6 +12,7 @@ class Werewolf(Agent):
         """
         super().__init__(id, num_players)
         # werewolves belief is different from default and only includes on villagers
+        #TODO this is wrong  the beliefs should be the length of all players ..
         self.beliefs = np.ones(len(villagers_id))
         self.beliefs[id] = 0
         self.beliefs /= np.sum(self.beliefs)
