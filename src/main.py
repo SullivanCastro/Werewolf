@@ -51,7 +51,8 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', save_logs=
         
         # Night phase
         eliminated_night = game.night_shift()
-        print(f"🌙 Werewolves eliminated villager {eliminated_night}")
+        if verbose:
+            print(f"🌙 Werewolves eliminated villager {eliminated_night}")
         
         # Check win condition after night
         winner = game.check_game_over()
@@ -64,7 +65,8 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', save_logs=
         
         # Day phase
         eliminated_day, target_type = game.day_shift()
-        print(f"☀️ Village eliminated player {eliminated_day} who was a {target_type} !")
+        if verbose:
+            print(f"☀️ Village eliminated player {eliminated_day} who was a {target_type} !")
         
         # Save beliefs after each round
         if save_logs:
