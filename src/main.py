@@ -5,7 +5,7 @@ import random
 import os
 from utils.logs import save_beliefs
 
-def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs'):
+def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', save_logs=True):
     """
     Run a complete werewolf game simulation.
     
@@ -16,6 +16,7 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs'):
     verbose: bool, whether to print detailed game progress
     seed: int, random seed for reproducibility (optional)
     log_dir: str, directory to save belief logs
+    save_logs: bool, whether to save belief logs
     
     RETURNS:
     dict: Game statistics
@@ -27,10 +28,12 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs'):
             print(f"Using random seed: {seed}")
             
     # Initialize game
-    os.makedirs(log_dir, exist_ok=True)
+    if save_logs:
+        os.makedirs(log_dir, exist_ok=True)
     game = Game(num_villagers=Players[1], num_wolves=Players[0], seed=seed, update_params=[0.15, 0.15, 0.2, 0.3])
     # Log initial beliefs
-    save_beliefs(game, 0)
+    if save_logs:
+        save_beliefs(game, 0)
 
     # Game stats
     stats = {
@@ -64,7 +67,8 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs'):
         print(f"☀️ Village eliminated player {eliminated_day} who was a {target_type} !")
         
         # Save beliefs after each round
-        save_beliefs(game, stats['rounds'] + 1, log_dir=log_dir)
+        if save_logs:
+            save_beliefs(game, stats['rounds'] + 1, log_dir=log_dir)
 
         # Check win condition after day
         winner = game.check_game_over()
@@ -88,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('--verbose', '-v', action='store_true', help='Print detailed game progress')
     parser.add_argument('--seed', type=int, help='Random seed for reproducibility', default=None)
     parser.add_argument('--log_dir', type=str, help='Directory to save belief logs', default='logs')
+    parser.add_argument('--save_logs', '-s', action='store_true', help='Save belief logs', default=False)
     args = parser.parse_args()
     
-    main(verbose=args.verbose, seed=args.seed, log_dir=args.log_dir)
+    main(verbose=args.verbose, seed=args.seed, log_dir=args.log_dir, save_logs=args.save_logs)

@@ -216,24 +216,27 @@ class Game():
 
     def night_shift(self):
         """
-        During night shift, werewolfs collectively vote to eliminate one villager
+        During night shift, werewolfs collectively vote to eliminate one villager based on their combined beliefs
         Returns the ID of the eliminated villager or None if no one was eliminated
         """
-        # Collect votes from werewolfs
+        # Check if there are werewolves and villagers alive
         if len(self.werewolfs) > 0 and len(self.villagers) > 0:
-            votes = []
+            # Sum up belief vectors of all werewolves
+            combined_beliefs = np.zeros(self.num_players)
             for werewolf in self.werewolfs.values():
-                votes.append(werewolf.night_vote(self.villagers_id))
+                # Only consider beliefs for villagers
+                for villager_id in self.villagers_id:
+                    combined_beliefs[villager_id] += werewolf.beliefs[villager_id]
             
-            # Count votes and get all villagers with maximum votes
-            vote_counts = np.bincount(votes)
-            max_votes = np.max(vote_counts)
-            candidates = np.where(vote_counts == max_votes)[0]
-            # Randomly select one among the candidates
-            eliminated_id = np.random.choice(candidates)
-
-            # Eliminate the chosen villager if they exist
-            if eliminated_id in self.villagers_id:
+            # Find villagers with maximum combined belief value
+            max_belief = np.max(combined_beliefs)
+            candidates = np.where(combined_beliefs == max_belief)[0]
+            # Filter candidates to only include alive villagers
+            candidates = [c for c in candidates if c in self.villagers_id]
+            
+            if len(candidates) > 0:
+                # Randomly select one among the candidates with highest belief
+                eliminated_id = np.random.choice(candidates)
                 self.eliminate_villager(eliminated_id)
                 return eliminated_id
         return None
