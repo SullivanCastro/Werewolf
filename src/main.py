@@ -2,8 +2,10 @@ from game.game import Game
 import argparse
 import numpy as np
 import random
+import os
+from utils.logs import save_beliefs
 
-def main(Players = [2, 10], verbose=False, seed=None):
+def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs'):
     """
     Run a complete werewolf game simulation.
     
@@ -13,6 +15,7 @@ def main(Players = [2, 10], verbose=False, seed=None):
     Team 2: Villagers
     verbose: bool, whether to print detailed game progress
     seed: int, random seed for reproducibility (optional)
+    log_dir: str, directory to save belief logs
     
     RETURNS:
     dict: Game statistics
@@ -24,8 +27,11 @@ def main(Players = [2, 10], verbose=False, seed=None):
             print(f"Using random seed: {seed}")
             
     # Initialize game
+    os.makedirs(log_dir, exist_ok=True)
     game = Game(num_villagers=Players[1], num_wolves=Players[0], seed=seed, update_params=[0.15, 0.15, 0.2, 0.3])
-    
+    # Log initial beliefs
+    save_beliefs(game, 0)
+
     # Game stats
     stats = {
         'rounds': 0,
@@ -57,6 +63,9 @@ def main(Players = [2, 10], verbose=False, seed=None):
         eliminated_day, target_type = game.day_shift()
         print(f"☀️ Village eliminated player {eliminated_day} who was a {target_type} !")
         
+        # Save beliefs after each round
+        save_beliefs(game, stats['rounds'] + 1, log_dir=log_dir)
+
         # Check win condition after day
         winner = game.check_game_over()
         if winner:
@@ -78,6 +87,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run a Werewolf game simulation.')
     parser.add_argument('--verbose', '-v', action='store_true', help='Print detailed game progress')
     parser.add_argument('--seed', type=int, help='Random seed for reproducibility', default=None)
+    parser.add_argument('--log_dir', type=str, help='Directory to save belief logs', default='logs')
     args = parser.parse_args()
     
-    main(verbose=args.verbose, seed=args.seed)
+    main(verbose=args.verbose, seed=args.seed, log_dir=args.log_dir)

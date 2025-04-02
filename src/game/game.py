@@ -39,7 +39,6 @@ class Game():
 
         for j in self.werewolfs_id:
             self.werewolfs[j] = Werewolf(j, self.num_players, self.werewolfs_id, self.villagers_id, self.seed)
-
         
     def get_villagers_count(self):
         """
@@ -70,8 +69,8 @@ class Game():
         elimintes a werewolf with specified id
         id: int  id of the werewolf to be eliminted
         """
-        self.dead_werewolfs.append(self.werewolfs[id])
-        self.werewolfs.pop(id)
+        self.dead_werewolfs.append(self.werewolfs.pop(id))
+        
         self.werewolfs_id = self.werewolfs.keys()
         
         # Update beliefs of remaining agents
@@ -181,10 +180,10 @@ class Game():
         # Collect votes from all players with voter IDs
         votes = {}
         for villager in self.villagers.values():
-            print(f"Villager {villager.id} beliefs: {np.around(villager.beliefs, decimals=1)}")
+            # print(f"Villager {villager.id} beliefs: {np.around(villager.beliefs, decimals=1)}")
             votes[villager.id] = villager.vote()
         for werewolf in self.werewolfs.values():
-            print(f"Werewolf {werewolf.id} beliefs: {np.around(werewolf.beliefs, decimals=1)}")
+            # print(f"Werewolf {werewolf.id} beliefs: {np.around(werewolf.beliefs, decimals=1)}")
             votes[werewolf.id] = werewolf.vote()
         
         # Count votes and eliminate player with most votes
