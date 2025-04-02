@@ -100,13 +100,16 @@ class Game():
         Calculates current sum of villagers mean kill will for werewolfs
         information propogation metric
 
-        returns float
+        returns {"s_werewolves": float, "s_villagers": float}
         """
-        total_sum = 0
+        s_w = 0  #S_werewolves  for current round. See section 3.5 of report
+        s_v = 0  #S_villagers  for current round. See section  3.6 of report
         for k, v in self.villagers:
-            mean_b = np.mean(v.beliefs[self.werewolfs_id])
-            total_sum + mean_b
-        return total_sum
+            mean_w = np.mean(v.beliefs[self.werewolfs_id])
+            s_w = s_w + mean_w
+            mean_v = np.mean(v.beliefs[self.villagers_id])
+            s_v = s_v + mean_v
+        return {"s_werewolves": s_w, "s_villagers": s_v}
 
     def check_game_over(self):
         """
