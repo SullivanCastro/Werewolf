@@ -96,17 +96,36 @@ class Game():
 
     def calc_inf_metric(self):
         """
-        #TODO  this is currently incomplete. see section 3.4 in report
-        Calculates current sum of villagers mean kill will for werewolfs
+        Calculates current sum of villagers mean kill will for werewolfs and for villagers.
         information propogation metric
 
-        returns float
+        returns {"s_werewolves": float, "s_villagers": float}
         """
-        total_sum = 0
+        s_w = 0  #S_werewolves  for current round. See section 3.5 of report
+        s_v = 0  #S_villagers  for current round. See section  3.6 of report
         for k, v in self.villagers:
-            mean_b = np.mean(v.beliefs[self.werewolfs_id])
-            total_sum + mean_b
-        return total_sum
+            mean_w = np.nanmean(v.beliefs[self.werewolfs_id])
+            s_w = s_w + mean_w
+            mean_v = np.nanmean(v.beliefs[self.villagers_id])
+            s_v = s_v + mean_v
+        return {"s_werewolves": s_w, "s_villagers": s_v}
+    
+    def calc_info_entropy(self):
+        """
+        calculates entropy in villagers' kill will
+
+        Returns: {"entropy": float}
+
+        """
+        total_entropy = 0
+        for k, v in self.villagers:
+            filtered_belief = [x for x in v.beliefs if x is not None]
+            if len(filtered_belief) == 0:
+                continue
+            belief_array = np.array(filtered_belief)
+            entropy = -np.sum(belief_array * np.log(belief_array))
+            total_entropy = total_entropy + entropy
+        return {"entropy": total_entropy}
 
     def check_game_over(self):
         """
