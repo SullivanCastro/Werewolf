@@ -44,8 +44,19 @@ def save_beliefs(game, round_num, log_dir='logs'):
     except FileNotFoundError:
         data = {}
     
+
     # Update data with current round
     data[str(round_num)] = belief_matrix
+
+    # calculate information propogation metrics
+    info_metric = game.calc_inf_metric()
+
+    data.update(info_metric)
+
+    #calculate information entropy
+    info_entropy = game.calc_info_entropy()
+
+    data.update(info_entropy)
     
     # Save updated data
     with open(log_file, 'w') as f:
