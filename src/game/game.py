@@ -1,10 +1,10 @@
-from agent.villagers import Villager
-from agent.werewolf import Werewolf
+from agent import Villager, Werewolf, LittleGirl
+from utils import softmax
 import numpy as np
 
 class Game():
 
-    def __init__(self, num_villagers=1, num_wolves=1, update_params = [0.15, 0.15, 0.2, 0.3], seed=42): # [lambda, eta, beta, gamma]
+    def __init__(self, num_villagers=1, num_wolves=1, update_params = [15, 15, 2, 0.3], is_little_girl=True, seed=42): # [lambda, eta, beta, gamma]
         """
         init a game instance.
         num_villagers:  int     number of villagers in the game
@@ -17,28 +17,39 @@ class Game():
         seed:           int     random seed for reproducibility
         """
         np.random.seed(seed)  # Set random seed
-        self.seed = seed
-        self.num_villagers = num_villagers
-        self.num_wolves = num_wolves
-        self.num_players =  self.num_villagers + self.num_wolves
-        self.update_params = update_params 
+        self.seed           = seed
+        self.num_villagers  = num_villagers
+        self.num_wolves     = num_wolves
+        self.num_players    = self.num_villagers + self.num_wolves
+        self.is_little_girl = is_little_girl
+        self._eta, self._lambda, self._mu, self._gamma = update_params 
+        
 
-        #dictionaries containing active werewolfs and villagers in the game
-        self.werewolfs = {}
+        #dictionaries containing active werewolves and villagers in the game
+        self.werewolves = {}
         self.villagers = {}
 
-        # lists including eliminated werewolfs and villagers
-        self.dead_werewolfs = []
+        # lists including eliminated werewolves and villagers
+        self.dead_werewolves = []
         self.dead_villagers = []
         
         self.villagers_id = range(self.num_villagers) #list ids of the villagers
-        self.werewolfs_id = range(self.num_villagers, self.num_players) #list ids of the werewolfes
+        self.werewolves_id = range(self.num_villagers, self.num_players) #list ids of the werewolfes
 
-        for i in self.villagers_id:
-            self.villagers[i] = Villager(i, self.num_players, self.seed)
+        if is_little_girl:
+            self.villagers[self.villagers_id[0]] = LittleGirl(self.villagers_id[0], self.num_players, self.seed)
+            for i in self.villagers_id[1:]:
+                self.villagers[i] = Villager(i, self.num_players, self.seed)
+        else:    
+            for i in self.villagers_id:
+                self.villagers[i] = Villager(i, self.num_players, self.seed)
 
-        for j in self.werewolfs_id:
-            self.werewolfs[j] = Werewolf(j, self.num_players, self.werewolfs_id, self.villagers_id, self.seed)
+        for j in self.werewolves_id:
+            self.werewolves[j] = Werewolf(j, self.num_players, self.werewolves_id, self.villagers_id, self.seed)
+
+        # Alive dictionary
+        self.alive = self.villagers.copy()
+        self.alive.update(self.werewolves.copy())
         
     def get_villagers_count(self):
         """
@@ -50,11 +61,11 @@ class Game():
     
     def get_wolves_count(self):
         """
-        gets current number of werewolfs
+        gets current number of werewolves
 
         returns int
         """
-        return self.num_wolves - len(self.dead_werewolfs)
+        return self.num_wolves - len(self.dead_werewolves)
     
     def get_agents_count(self):
         """
@@ -69,15 +80,11 @@ class Game():
         elimintes a werewolf with specified id
         id: int  id of the werewolf to be eliminted
         """
-        self.dead_werewolfs.append(self.werewolfs.pop(id))
+        self.dead_werewolves.append(self.werewolves.pop(id))
         
-        self.werewolfs_id = self.werewolfs.keys()
+        self.werewolves_id = list(self.werewolves.keys())
         
-        # Update beliefs of remaining agents
-        for villager in self.villagers.values():
-            villager.remove_dead_player(id)
-        for werewolf in self.werewolfs.values():
-            werewolf.remove_dead_player(id)
+        self.alive.pop(id)
 
     def eliminate_villager(self, id):
         """
@@ -86,17 +93,12 @@ class Game():
         """
         self.dead_villagers.append(self.villagers[id])
         self.villagers.pop(id)
-        self.villagers_id = self.villagers.keys()
-        
-        # Update beliefs of remaining agents
-        for villager in self.villagers.values():
-            villager.remove_dead_player(id)
-        for werewolf in self.werewolfs.values():
-            werewolf.remove_dead_player(id)
+        self.villagers_id = list(self.villagers.keys())
+        self.alive.pop(id)
 
     def calc_inf_metric(self):
         """
-        Calculates current sum of villagers mean kill will for werewolfs and for villagers.
+        Calculates current sum of villagers mean kill will for werewolves and for villagers.
         information propogation metric
 
         returns {"s_werewolves": float, "s_villagers": float}
@@ -104,7 +106,7 @@ class Game():
         s_w = 0  #S_werewolves  for current round. See section 3.5 of report
         s_v = 0  #S_villagers  for current round. See section  3.6 of report
         for k, v in self.villagers:
-            mean_w = np.nanmean(v.beliefs[self.werewolfs_id])
+            mean_w = np.nanmean(v.beliefs[self.werewolves_id])
             s_w = s_w + mean_w
             mean_v = np.nanmean(v.beliefs[self.villagers_id])
             s_v = s_v + mean_v
@@ -133,15 +135,15 @@ class Game():
         
         Returns:
             None if game is not over
-            "werewolfs" if werewolfs won
+            "werewolves" if werewolves won
             "Villagers" if villagers won
         """
         if self.get_villagers_count() <= self.get_wolves_count():
-            return "werewolfs"
+            return "werewolves"
         elif self.get_wolves_count() == 0:
             return "Villagers"
         return None
-
+                
     def update_beliefs_after_elimination(self, eliminated_id, voters_dict, eliminated_type):
         """
         Updates beliefs of all agents after an elimination
@@ -149,46 +151,92 @@ class Game():
         voters_dict: dict - Dictionary mapping voter IDs to their votes
         eliminated_type: str - "Werewolf" or "Villager"
         """
-        voted_for_eliminated = {voter_id for voter_id, vote in voters_dict.items() if vote == eliminated_id}
-        
-        # Update villagers' beliefs
-        for villager in self.villagers.values():
-            # Store previous beliefs for clipping
-            previous_beliefs = villager.beliefs.copy()
+
+        # Update players' beliefs
+        for player in self.alive.values():
+            player.beliefs[eliminated_id] = np.nan
+
+            # If the player is a villager
+            if player in list(self.villagers.values()):
+
+                if isinstance(player, LittleGirl) and np.isnan(player.beliefs).all():
+                    alive_id = list(self.villagers.keys()) + list(self.werewolves.keys())
+                    player.beliefs[alive_id] = 1
+ 
+                for voter_id, vote in voters_dict.items():
+
+                    if (voter_id == player.id) or (voter_id == eliminated_id):
+                        continue
+                    
+                    old_belief = player.beliefs[voter_id]
+                    new_belief = old_belief
+
+                    """ Death vote """
+                    new_belief += self._eta * ( (eliminated_type == player.type) - (eliminated_type != player.type) ) * (vote == eliminated_id)
+
+                    """ Revenge vote """
+                    new_belief += self._lambda * (vote == player.id) 
+
+                    """ Friendship vote """
+                    new_belief += -self._mu * (vote == voters_dict[player.id]) 
+
+                    """ Clipping the belief """
+                    player.beliefs[voter_id] = np.clip(new_belief,
+                                                   old_belief - self._gamma * 1e24,
+                                                   old_belief + self._gamma * 1e24)
+
+
+            # If the player is a werewolf
+            else:
+                for voter_id, vote in voters_dict.items():
+                    active_werewolves = list(self.werewolves.keys())
+                    
+                    if (voter_id == player.id) or (voter_id in active_werewolves) or (voter_id == eliminated_id):
+                        continue
+
+                    old_belief = player.beliefs[voter_id]
+                    new_belief = old_belief
+
+                    """ Death vote """
+                    new_belief += self._eta * ( (vote in active_werewolves) - (vote not in active_werewolves) )
+
+                    """ Revenge vote """
+                    new_belief += self._lambda * (vote == player.id) 
+
+                    """ Friendship vote """
+                    new_belief += -self._mu * (vote == voters_dict[player.id]) 
+
+                    """ Clipping the belief """
+                    player.beliefs[voter_id] = np.clip(new_belief,
+                                                   old_belief - self._gamma * 1e24,
+                                                   old_belief + self._gamma * 1e24)
             
-            # Apply revenge update - increase kill will for players who voted against this villager
-            for voter_id, vote in voters_dict.items():
-                if vote == villager.id and villager.beliefs[voter_id] is not None:
-                    old_belief = villager.beliefs[voter_id]
-                    new_belief = old_belief + self.update_params[2]
-                    villager.beliefs[voter_id] = np.clip(new_belief, 
-                                                       old_belief - self.update_params[3],
-                                                       old_belief + self.update_params[3])
-            
-            for other_id in range(self.num_players):
-                # Skip if the belief is None (dead player, self, or werewolf-werewolf)
-                if villager.beliefs[other_id] is None:
-                    continue
-                
-                old_belief = villager.beliefs[other_id]
-                # Case 1: Eliminated player was a villager
-                if eliminated_type == "Villager":
-                    if other_id in voted_for_eliminated:
-                        new_belief = old_belief + self.update_params[1]
-                    else:
-                        new_belief = old_belief - self.update_params[1]
-                
-                # Case 2: Eliminated player was a werewolf
-                elif eliminated_type == "Werewolf":
-                    if other_id in voted_for_eliminated:
-                        new_belief = old_belief - self.update_params[0]
-                    else:
-                        new_belief = old_belief + self.update_params[0]
-                
-                # Clip the belief change based on gamma
-                villager.beliefs[other_id] = np.clip(new_belief,
-                                                   old_belief - self.update_params[3],
-                                                   old_belief + self.update_params[3])
+            # normalize the beliefs of the player
+            player.beliefs = softmax(player.beliefs)
+
+
+    def update_beliefs_after_night_vote(self, eliminated_id):
+        """
+        Updates beliefs of all agents after an elimination
+        eliminated_id: int - ID of the eliminated player
+        voters_dict: dict - Dictionary mapping voter IDs to their votes
+        eliminated_type: str - "Werewolf" or "Villager"
+        """
+
+        # Update players' beliefs
+        for player in self.alive.values():
+
+            # If the player is the Little Girl and she cheated
+            if isinstance(player, LittleGirl) and np.random.random() < player.p_focus and len(self.werewolves_id)>0:
+                random_wolf_id = np.random.choice(self.werewolves_id)
+                player.beliefs = np.ones_like(player.beliefs) * np.nan
+                player.beliefs[random_wolf_id] = 1
+            # Otherwise just take the new death into account
+            else:
+                player.beliefs[eliminated_id] = np.nan
+                player.beliefs = softmax(player.beliefs)
+
+           
 
     def day_shift(self):
         """
@@ -198,51 +246,51 @@ class Game():
         """
         # Collect votes from all players with voter IDs
         votes = {}
-        for villager in self.villagers.values():
-            # print(f"Villager {villager.id} beliefs: {np.around(villager.beliefs, decimals=1)}")
-            votes[villager.id] = villager.vote()
-        for werewolf in self.werewolfs.values():
-            # print(f"Werewolf {werewolf.id} beliefs: {np.around(werewolf.beliefs, decimals=1)}")
-            votes[werewolf.id] = werewolf.vote()
+        for player in self.alive.values():
+            votes[player.id] = player.vote()
         
         # Count votes and eliminate player with most votes
         if len(votes) > 0:
             vote_counts = np.bincount([v for v in votes.values()])
             max_votes = np.max(vote_counts)
+
             # Get all players with maximum votes
             candidates = np.where(vote_counts == max_votes)[0]
+
             # Randomly select one among the candidates
             eliminated_id = np.random.choice(candidates)
             # print(f"Candidates: {candidates}")
             # print(f"Eliminated ID: {eliminated_id}")
-            # print(f"werewolfs_id: {self.werewolfs_id}")
+            # print(f"werewolves_id: {self.werewolves_id}")
             # print(f"villagers_id: {self.villagers_id}")
+
             target_type = None
+            dead_character = self.alive[eliminated_id]
+            target_type, role = dead_character.type, dead_character.role
             
-            if eliminated_id in self.werewolfs_id:
+            if target_type == "Werewolf":
                 self.eliminate_werewolf(eliminated_id)
-                target_type = "Werewolf"
-            elif eliminated_id in self.villagers_id:
+            else:
                 self.eliminate_villager(eliminated_id)
-                target_type = "Villager"
-            # print(votes)
+
             # Update beliefs after elimination
             if target_type:
                 self.update_beliefs_after_elimination(eliminated_id, votes, target_type)
             
-            return eliminated_id, target_type
+            return eliminated_id, role
+        
         return None
 
     def night_shift(self):
         """
-        During night shift, werewolfs collectively vote to eliminate one villager based on their combined beliefs
+        During night shift, werewolves collectively vote to eliminate one villager based on their combined beliefs
         Returns the ID of the eliminated villager or None if no one was eliminated
         """
         # Check if there are werewolves and villagers alive
-        if len(self.werewolfs) > 0 and len(self.villagers) > 0:
+        if len(self.werewolves) > 0 and len(self.villagers) > 0:
             # Sum up belief vectors of all werewolves
             combined_beliefs = np.zeros(self.num_players)
-            for werewolf in self.werewolfs.values():
+            for werewolf in self.werewolves.values():
                 # Only consider beliefs for villagers
                 for villager_id in self.villagers_id:
                     combined_beliefs[villager_id] += werewolf.beliefs[villager_id]
@@ -257,7 +305,13 @@ class Game():
                 # Randomly select one among the candidates with highest belief
                 eliminated_id = np.random.choice(candidates)
                 self.eliminate_villager(eliminated_id)
+
+                # update the beliefs to take the night shift into account
+                self.update_beliefs_after_night_vote(eliminated_id)
+
                 return eliminated_id
+            
+
         return None
 
 

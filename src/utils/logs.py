@@ -30,7 +30,7 @@ def save_beliefs(game, round_num, log_dir='logs'):
         belief_matrix[vid] = villager.beliefs
         
     # Fill in werewolves' beliefs
-    for wid, werewolf in game.werewolfs.items():
+    for wid, werewolf in game.werewolves.items():
         belief_matrix[wid] = werewolf.beliefs
         
     # Convert to nested list (JSON serializable)

@@ -4,7 +4,7 @@ class Agent:
     def __init__(self, id, num_players, seed=42):
         np.random.seed(seed + id)  # Different seed for each agent based on their ID
         # Initialize beliefs array with random values from normal distribution
-        self.beliefs = np.random.normal(loc=1.0, scale=0.1, size=num_players)
+        self.beliefs = np.random.normal(loc=1.0, scale=0, size=num_players)
         self.beliefs[id] = None
 
     def vote(self):

@@ -5,7 +5,7 @@ import random
 import os
 from utils.logs import save_beliefs
 
-def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', save_logs=True):
+def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', update_params=[0.15, 0.15, 0.2, 0.3], is_little_girl=False, save_logs=True):
     """
     Run a complete werewolf game simulation.
     
@@ -30,7 +30,7 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', save_logs=
     # Initialize game
     if save_logs:
         os.makedirs(log_dir, exist_ok=True)
-    game = Game(num_villagers=Players[1], num_wolves=Players[0], seed=seed, update_params=[0.15, 0.15, 0.2, 0.3])
+    game = Game(num_villagers=Players[1], num_wolves=Players[0], seed=seed, update_params=update_params, is_little_girl=is_little_girl)
     # Log initial beliefs
     if save_logs:
         save_beliefs(game, 0)
@@ -67,6 +67,7 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', save_logs=
         eliminated_day, target_type = game.day_shift()
         if verbose:
             print(f"☀️ Village eliminated player {eliminated_day} who was a {target_type} !")
+
         
         # Save beliefs after each round
         if save_logs:

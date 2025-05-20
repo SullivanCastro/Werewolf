@@ -1,6 +1,7 @@
 import numpy as np
 
 from .agent import Agent
+from utils import softmax
 
 class Werewolf(Agent):
     def __init__(self, id, num_players, werewolves_id, villagers_id, seed=42):
@@ -14,8 +15,10 @@ class Werewolf(Agent):
         super().__init__(id, num_players, seed)
         # Set beliefs towards other werewolves to None
         self.beliefs[werewolves_id] = None
+        self.beliefs = softmax(self.beliefs)
         self.id = id
         self.type = "Werewolf"
+        self.role = self.type
 
         # a werewolf knows who are the villagers
         self.villagers_id = villagers_id
