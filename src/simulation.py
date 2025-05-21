@@ -61,8 +61,8 @@ def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, is_li
         nb_iter (int): Number of games to simulate per parameter combination
     """
     # Create parameter ranges
-    eta_range = np.arange(0, 30, 1)
-    _lambda_range = np.arange(0, 30, 1)
+    eta_range = np.arange(0, 30, 0.5)
+    _lambda_range = np.arange(0, 30, 0.5)
     
     # Initialize results matrix
     results = np.zeros((len(_lambda_range), len(eta_range)))
@@ -96,11 +96,12 @@ def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, is_li
         yticklabels=[f"{x:.2f}" for x in _lambda_range],
         cmap='RdYlBu',
         vmin=0,
-        vmax=1
+        vmax=1,   
     )
     
     plt.xlabel('η (eta)')
     plt.ylabel('λ (lambda)')
+    plt.xticks(rotation=90)
     plt.title('Villager Win Rate Phase Diagram')
     
     # Create logs directory if it doesn't exist

@@ -304,12 +304,13 @@ class Game():
             if len(candidates) > 0:
                 # Randomly select one among the candidates with highest belief
                 eliminated_id = np.random.choice(candidates)
+                eliminated_role = self.alive[eliminated_id].role
                 self.eliminate_villager(eliminated_id)
 
                 # update the beliefs to take the night shift into account
                 self.update_beliefs_after_night_vote(eliminated_id)
 
-                return eliminated_id
+                return eliminated_id, eliminated_role
             
 
         return None

@@ -5,7 +5,7 @@ import random
 import os
 from utils.logs import save_beliefs
 
-def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', update_params=[0.15, 0.15, 0.2, 0.3], is_little_girl=False, save_logs=True):
+def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_params=[25, 25, 25, 0.3], is_little_girl=False, save_logs=True):
     """
     Run a complete werewolf game simulation.
     
@@ -50,9 +50,9 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', update_par
             print(f"Night phase - {game.get_wolves_count()} werewolves, {game.get_villagers_count()} villagers")
         
         # Night phase
-        eliminated_night = game.night_shift()
+        eliminated_night, eliminated_role = game.night_shift()
         if verbose:
-            print(f"🌙 Werewolves eliminated villager {eliminated_night}")
+            print(f"🌙 Werewolves eliminated villager {eliminated_night} who was a {eliminated_role}")
         
         # Check win condition after night
         winner = game.check_game_over()
@@ -92,10 +92,11 @@ def main(Players = [2, 10], verbose=False, seed=None, log_dir='logs', update_par
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run a Werewolf game simulation.')
+    parser.add_argument('--is_little_girl', action='store_true', help="Add a Little Girl among Villagers", default=False)
     parser.add_argument('--verbose', '-v', action='store_true', help='Print detailed game progress')
     parser.add_argument('--seed', type=int, help='Random seed for reproducibility', default=None)
     parser.add_argument('--log_dir', type=str, help='Directory to save belief logs', default='logs')
     parser.add_argument('--save_logs', '-s', action='store_true', help='Save belief logs', default=False)
     args = parser.parse_args()
     
-    main(verbose=args.verbose, seed=args.seed, log_dir=args.log_dir, save_logs=args.save_logs)
+    main(verbose=args.verbose, seed=args.seed, log_dir=args.log_dir, save_logs=args.save_logs, is_little_girl=args.is_little_girl)
