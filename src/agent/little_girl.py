@@ -12,3 +12,4 @@ class LittleGirl(Agent):
         self.role = "LittleGirl"
         self.p_focus = p_focus
         self.focus = False
+        self.save_beliefs = None

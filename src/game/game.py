@@ -4,7 +4,7 @@ import numpy as np
 
 class Game():
 
-    def __init__(self, num_villagers=1, num_wolves=1, update_params = [15, 15, 2, 0.3], is_little_girl=True, seed=42): # [lambda, eta, beta, gamma]
+    def __init__(self, num_villagers=1, num_wolves=1, update_params = [15, 15, 2, 0.3], p_focus=None, seed=42): # [lambda, eta, beta, gamma]
         """
         init a game instance.
         num_villagers:  int     number of villagers in the game
@@ -17,11 +17,12 @@ class Game():
         seed:           int     random seed for reproducibility
         """
         np.random.seed(seed)  # Set random seed
-        self.seed           = seed
-        self.num_villagers  = num_villagers
-        self.num_wolves     = num_wolves
-        self.num_players    = self.num_villagers + self.num_wolves
-        self.is_little_girl = is_little_girl
+        self.seed                  = seed
+        self.num_villagers         = num_villagers
+        self.num_wolves            = num_wolves
+        self.num_players           = self.num_villagers + self.num_wolves
+        self.is_little_girl        = (p_focus is not None)
+        self.p_focus               = p_focus
         self._eta, self._lambda, self._mu, self._gamma = update_params 
         
 
@@ -36,8 +37,8 @@ class Game():
         self.villagers_id = range(self.num_villagers) #list ids of the villagers
         self.werewolves_id = range(self.num_villagers, self.num_players) #list ids of the werewolfes
 
-        if is_little_girl:
-            self.villagers[self.villagers_id[0]] = LittleGirl(self.villagers_id[0], self.num_players, self.seed)
+        if self.is_little_girl:
+            self.villagers[self.villagers_id[0]] = LittleGirl(self.villagers_id[0], self.num_players, self.p_focus, self.seed)
             for i in self.villagers_id[1:]:
                 self.villagers[i] = Villager(i, self.num_players, self.seed)
         else:    
@@ -81,9 +82,7 @@ class Game():
         id: int  id of the werewolf to be eliminted
         """
         self.dead_werewolves.append(self.werewolves.pop(id))
-        
         self.werewolves_id = list(self.werewolves.keys())
-        
         self.alive.pop(id)
 
     def eliminate_villager(self, id):
@@ -159,9 +158,11 @@ class Game():
             # If the player is a villager
             if player in list(self.villagers.values()):
 
+                # Little Girl was focusing a werewolf and killed it during the day vote
                 if isinstance(player, LittleGirl) and np.isnan(player.beliefs).all():
+                    player.focus = False
                     alive_id = list(self.villagers.keys()) + list(self.werewolves.keys())
-                    player.beliefs[alive_id] = 1
+                    player.beliefs[alive_id] = softmax(player.save_beliefs[alive_id])
  
                 for voter_id, vote in voters_dict.items():
 
@@ -213,6 +214,9 @@ class Game():
             
             # normalize the beliefs of the player
             player.beliefs = softmax(player.beliefs)
+            # if player.id == 0:
+            #     print([id for id in range(self.num_players) if id not in list(self.alive.keys())])
+            #     print(player.beliefs[[id for id in range(self.num_players) if id not in list(self.alive.keys())]])
 
 
     def update_beliefs_after_night_vote(self, eliminated_id):
@@ -227,15 +231,16 @@ class Game():
         for player in self.alive.values():
 
             # If the player is the Little Girl and she cheated
-            if isinstance(player, LittleGirl) and np.random.random() < player.p_focus and len(self.werewolves_id)>0:
-                random_wolf_id = np.random.choice(self.werewolves_id)
-                player.beliefs = np.ones_like(player.beliefs) * np.nan
-                player.beliefs[random_wolf_id] = 1
+            if (isinstance(player, LittleGirl)) and (not player.focus) and np.random.random() < player.p_focus:
+                    player.save_beliefs = player.beliefs.copy()
+                    random_wolf_id = np.random.choice(self.werewolves_id)
+                    player.beliefs = np.ones_like(player.beliefs) * np.nan
+                    player.beliefs[random_wolf_id] = 1
+                    player.focus = True
             # Otherwise just take the new death into account
             else:
                 player.beliefs[eliminated_id] = np.nan
                 player.beliefs = softmax(player.beliefs)
-
            
 
     def day_shift(self):

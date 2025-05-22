@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-def simulation(nb_players=100, ratio_werewolf=0.1, nb_iter=1000, update_params=[0.15, 0.15, 0.2, 0.3], is_little_girl=False, verbose=False):
+def simulation(nb_players=100, ratio_werewolf=0.1, nb_iter=1000, update_params=[23.5, 10, 10, 0.3], p_focus=None, verbose=False):
     """
     Run multiple simulations of werewolf games and analyze results.
     
@@ -39,7 +39,7 @@ def simulation(nb_players=100, ratio_werewolf=0.1, nb_iter=1000, update_params=[
             seed=i,
             save_logs=False,
             update_params=update_params,
-            is_little_girl=is_little_girl
+            p_focus = p_focus
         )
         
         if stats['winner'] == "Villagers":
@@ -49,9 +49,9 @@ def simulation(nb_players=100, ratio_werewolf=0.1, nb_iter=1000, update_params=[
     villager_win_ratio = villager_wins / nb_iter
     mean_rounds = total_rounds / nb_iter
 
-    return villager_win_ratio, mean_rounds
+    return villager_win_ratio, mean_rounds, stats["last_turn_little_girl"], stats["avg_belief_on_werewolves"], stats["avg_belief_on_little_girl"]
 
-def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, is_little_girl=False):
+def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, p_focus=None):
     """
     Create a phase diagram showing villager win rates for different eta and _lambda values.
     
@@ -76,12 +76,12 @@ def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, is_li
                 update_params = [eta, _lambda, _lambda, 0.3]
                 
                 # Run simulation with these parameters
-                win_ratio, _ = simulation(
+                win_ratio, _, _, _, _ = simulation(
                     nb_players=nb_players,
                     ratio_werewolf=ratio_werewolf,
                     nb_iter=nb_iter,
                     update_params=update_params,
-                    is_little_girl=is_little_girl
+                    p_focus=p_focus
                 )
                 
                 # Store result
@@ -108,9 +108,12 @@ def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, is_li
     os.makedirs('logs', exist_ok=True)
     
     # Save plot
-    plt.savefig('logs/phase_diagram.png', dpi=300, bbox_inches='tight')
+    plot_name = 'logs/phase_diagram.png'
+    if p_focus is not None:
+        p_str = f"{p_focus:.1f}".rstrip('0').rstrip('.')
+        plot_name = plot_name.replace(".png", f"_little_girl_{p_str}.png")
+    plt.savefig(plot_name, dpi=300, bbox_inches='tight')
     plt.close()
-
 
 def plot_phase_ratio(nb_players=100, nb_iter=100):
     """
@@ -137,7 +140,7 @@ def plot_phase_ratio(nb_players=100, nb_iter=100):
                 update_params = [player_number, player_number, werewolf_ratio, 0.3]
                 
                 # Run simulation with these parameters
-                win_ratio, _ = simulation(
+                win_ratio, _, _, _, _= simulation(
                     nb_players=nb_players,
                     ratio_werewolf=werewolf_ratio,
                     nb_iter=nb_iter
@@ -169,29 +172,95 @@ def plot_phase_ratio(nb_players=100, nb_iter=100):
     plt.savefig('logs/phase_ratio.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+def plot_little_girl(nb_players=100, ratio_werewolf=0.1, nb_iter=100):
+    """
+    Create a phase diagram showing villager win rates for different eta and _lambda values.
+    
+    Args:
+        nb_players (int): Total number of players in each game
+        ratio_werewolf (float): Ratio of werewolves to total players
+        nb_iter (int): Number of games to simulate per parameter combination
+    """
+    # Create parameter ranges
+    p_focus_list = np.linspace(0, 1, 11)
+    
+    for p_focus in p_focus_list:
+        plot_phase_eta_lambda(nb_players, ratio_werewolf, nb_iter, p_focus)
+
+def plot_ts_last_turn_little_girl(nb_players=100, ratio_werewolf=0.1, nb_iter=100):
+    p_focus_list = np.linspace(0, 1, 101)
+
+    # Calculate number of werewolves and villagers
+    num_werewolves = int(nb_players * ratio_werewolf)
+    num_villagers = nb_players - num_werewolves
+
+    avg_last_turn = np.zeros_like(p_focus_list)
+    std_last_turn = np.zeros_like(p_focus_list)
+    exp = np.zeros(shape=(nb_iter,))
+
+    for idx, p_focus in enumerate(tqdm(p_focus_list)):
+        for idx_exp, seed in enumerate(range(nb_iter)):
+            stats = main(
+                Players=[num_werewolves, num_villagers],
+                verbose=False,
+                seed=seed,
+                save_logs=False,
+                p_focus = p_focus
+            )
+            exp[idx_exp] = stats["last_turn_little_girl"]
+        
+        # Update the avg/std last turn
+        avg_last_turn[idx] = np.mean(exp)
+        std_last_turn[idx] = np.std(exp)
+
+    # Plot
+    plt.plot(p_focus_list, avg_last_turn, label='Average little girl last turn', color='blue')
+    plt.fill_between(p_focus_list, avg_last_turn - std_last_turn, avg_last_turn + std_last_turn, alpha=0.3, color='blue', label='Std Dev little girl last turn')
+
+    # Label
+    plt.xlabel(r'$p_{focus}$')
+    plt.ylabel('Little Girl last turn')
+
+    # Save plot
+    plot_name = 'logs/last_turn_little_girl.png'
+    plt.savefig(plot_name, dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run multiple Werewolf game simulations.')
     parser.add_argument('--players', type=int, default=100, help='Total number of players')
     parser.add_argument('--ratio', type=float, default=0.1, help='Ratio of werewolves to total players')
-    parser.add_argument('--is_little_girl', action='store_true', help='Add 1 Little Girl among the Villagers', default=False)
     parser.add_argument('--iterations', type=int, default=1000, help='Number of games to simulate')
+    parser.add_argument('--p-focus', type=float, help="Add a Little Girl among Villagers with a p_focus", default=None)
     parser.add_argument('--phase-plot', action='store_true', help='Generate phase plot', default=False)
+    parser.add_argument('--little-girl-plot', action='store_true', help='Generate the little girl analysis', default=False)
+    parser.add_argument('--last_turn', action='store_true', help='Generate the little girl last turn analysis', default=False)
     args = parser.parse_args()
+
     
     if args.phase_plot:
         plot_phase_eta_lambda(
             nb_players=args.players,
             ratio_werewolf=args.ratio,
             nb_iter=args.iterations,
-            is_little_girl=args.is_little_girl
+            p_focus=args.p_focus
         )
-    # if args.ratio_plot:
-    #     plot_phase_ratio(
-    #         nb_players=args.players,
-    #         nb_iter=args.iterations
-    #     )
+    if args.little_girl_plot:
+        plot_little_girl(
+            nb_players=args.players,
+            ratio_werewolf=args.ratio,
+            nb_iter=args.iterations
+        )
+    if args.last_turn:
+        plot_ts_last_turn_little_girl(
+            nb_players=args.players,
+            ratio_werewolf=args.ratio,
+            nb_iter=args.iterations
+        )
     else:
-        win_ratio, avg_rounds = simulation(
+        win_ratio, avg_rounds, _, _, _ = simulation(
             nb_players=args.players,
             ratio_werewolf=args.ratio,
             nb_iter=args.iterations,
