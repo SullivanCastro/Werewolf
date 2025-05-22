@@ -43,8 +43,9 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
         'initial_wolves': Players[0],
         'initial_villagers': Players[1],
         'last_turn_little_girl': 0,
-        'avg_belief_on_werewolves': [],
-        'avg_belief_on_little_girl': []
+        'avg_belief_villagers_on_werewolves': [],
+        'avg_belief_werewolves_on_little_girl': [],
+        'avg_belief_villagers_on_little_girl': []
     }
     
     # Game loop
@@ -63,6 +64,28 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
         if winner:
             stats['winner'] = winner
             break
+
+        # Average beliefs on werewolves
+        beliefs_werewolves = np.zeros(len(game.werewolves_id))
+        for villager_id in game.villagers_id:
+            beliefs_werewolves += np.nan_to_num(game.alive[villager_id].beliefs[game.werewolves_id], nan=1) / len(game.villagers_id)
+        stats["avg_belief_villagers_on_werewolves"].append(np.mean(beliefs_werewolves))
+
+        # Average beliefs on Little Girl
+        belief_werewolves_on_little_girl = []
+        belief_villagers_on_little_girl  = []
+        for alive_player_id, alive_player in game.alive.items():
+
+            if isinstance(alive_player, LittleGirl):
+                continue
+            
+            if alive_player_id in game.werewolves_id:
+                belief_werewolves_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=1))
+            else:
+                belief_villagers_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=0))
+
+        stats["avg_belief_werewolves_on_little_girl"].append(np.mean(belief_werewolves_on_little_girl))
+        stats["avg_belief_villagers_on_little_girl"].append(np.mean(belief_villagers_on_little_girl))
             
         if verbose:
             print(f"Day phase - {game.get_wolves_count()} werewolves, {game.get_villagers_count()} villagers")
@@ -82,18 +105,23 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
         beliefs_werewolves = np.zeros(len(game.werewolves_id))
         for villager_id in game.villagers_id:
             beliefs_werewolves += np.nan_to_num(game.alive[villager_id].beliefs[game.werewolves_id], nan=1) / len(game.villagers_id)
-        stats["avg_belief_on_werewolves"].append(np.mean(beliefs_werewolves))
+        stats["avg_belief_villagers_on_werewolves"].append(np.mean(beliefs_werewolves))
 
         # Average beliefs on Little Girl
-        belief_on_little_girl = []
-        for alive_player in game.alive.values():
+        belief_werewolves_on_little_girl = []
+        belief_villagers_on_little_girl  = []
+        for alive_player_id, alive_player in game.alive.items():
 
             if isinstance(alive_player, LittleGirl):
                 continue
+            
+            if alive_player_id in game.werewolves_id:
+                belief_werewolves_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=1))
+            else:
+                belief_villagers_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=0))
 
-            belief_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=1))
-
-        stats["avg_belief_on_little_girl"].append(np.mean(belief_on_little_girl))
+        stats["avg_belief_werewolves_on_little_girl"].append(np.mean(belief_werewolves_on_little_girl))
+        stats["avg_belief_villagers_on_little_girl"].append(np.mean(belief_villagers_on_little_girl))
 
         
         # Save beliefs after each round
@@ -111,8 +139,9 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
         print(f"Remaining villagers: {game.get_villagers_count()}")
         print(f"Remaining werewolves: {game.get_wolves_count()}")
         print(f"Last turn little girl: {stats['last_turn_little_girl']}")
-        print(f"Average beliefs on werewolf: {stats["avg_belief_on_werewolves"][-1]}")
-        print(f"Average belief on little_girl: {stats["avg_belief_on_little_girl"][-1]}")
+        print(f"Average beliefs villagers on werewolf: {stats["avg_belief_villagers_on_werewolves"][-1]}")
+        print(f"Average belief werewolves on little_girl: {stats["avg_belief_werewolves_on_little_girl"][-1]}")
+        print(f"Average belief villagers on little_girl: {stats["avg_belief_villagers_on_little_girl"][-1]}")
     
     return stats
 

@@ -49,7 +49,7 @@ def simulation(nb_players=100, ratio_werewolf=0.1, nb_iter=1000, update_params=[
     villager_win_ratio = villager_wins / nb_iter
     mean_rounds = total_rounds / nb_iter
 
-    return villager_win_ratio, mean_rounds, stats["last_turn_little_girl"], stats["avg_belief_on_werewolves"], stats["avg_belief_on_little_girl"]
+    return villager_win_ratio, mean_rounds
 
 def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, p_focus=None):
     """
@@ -76,7 +76,7 @@ def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, p_foc
                 update_params = [eta, _lambda, _lambda, 0.3]
                 
                 # Run simulation with these parameters
-                win_ratio, _, _, _, _ = simulation(
+                win_ratio, _ = simulation(
                     nb_players=nb_players,
                     ratio_werewolf=ratio_werewolf,
                     nb_iter=nb_iter,
@@ -108,11 +108,11 @@ def plot_phase_eta_lambda(nb_players=100, ratio_werewolf=0.1, nb_iter=100, p_foc
     os.makedirs('logs', exist_ok=True)
     
     # Save plot
-    plot_name = 'logs/phase_diagram.png'
+    plot_name = 'logs/phase_diagram.pdf'
     if p_focus is not None:
         p_str = f"{p_focus:.1f}".rstrip('0').rstrip('.')
-        plot_name = plot_name.replace(".png", f"_little_girl_{p_str}.png")
-    plt.savefig(plot_name, dpi=300, bbox_inches='tight')
+        plot_name = plot_name.replace(".pdf", f"_little_girl_{p_str}.pdf")
+    plt.savefig(plot_name, dpi=600, bbox_inches='tight')
     plt.close()
 
 def plot_phase_ratio(nb_players=100, nb_iter=100):
@@ -140,7 +140,7 @@ def plot_phase_ratio(nb_players=100, nb_iter=100):
                 update_params = [player_number, player_number, werewolf_ratio, 0.3]
                 
                 # Run simulation with these parameters
-                win_ratio, _, _, _, _= simulation(
+                win_ratio, _ = simulation(
                     nb_players=nb_players,
                     ratio_werewolf=werewolf_ratio,
                     nb_iter=nb_iter
@@ -169,7 +169,7 @@ def plot_phase_ratio(nb_players=100, nb_iter=100):
     os.makedirs('logs', exist_ok=True)
     
     # Save plot
-    plt.savefig('logs/phase_ratio.png', dpi=300, bbox_inches='tight')
+    plt.savefig('logs/phase_ratio.pdf', dpi=600, bbox_inches='tight')
     plt.close()
 
 def plot_little_girl(nb_players=100, ratio_werewolf=0.1, nb_iter=100):
@@ -222,10 +222,57 @@ def plot_ts_last_turn_little_girl(nb_players=100, ratio_werewolf=0.1, nb_iter=10
     plt.ylabel('Little Girl last turn')
 
     # Save plot
-    plot_name = 'logs/last_turn_little_girl.png'
-    plt.savefig(plot_name, dpi=300, bbox_inches='tight')
+    plot_name = 'logs/last_turn_little_girl.pdf'
+    plt.savefig(plot_name, dpi=600, bbox_inches='tight')
     plt.close()
 
+def plot_ts_avg_belief(nb_players=100, ratio_werewolf=0.1, nb_iter=100, p_focus=None, eta=23.5, _lambda=10):
+    # Calculate number of werewolves and villagers
+    num_werewolves = int(nb_players * ratio_werewolf)
+    num_villagers = nb_players - num_werewolves
+
+    update_params = [eta, _lambda, _lambda, 0.3]
+
+    # Initiate the mean average arrays
+    mean_avg_beliefs_villagers_on_werewolves = np.ones(shape=(nb_iter, nb_players)) * np.nan
+    mean_avg_beliefs_werewolves_on_little_girl = np.ones(shape=(nb_iter, nb_players)) * np.nan
+    mean_avg_beliefs_villagers_on_little_girl = np.ones(shape=(nb_iter, nb_players)) * np.nan
+
+    for iter in tqdm(range(nb_iter)):
+        stats = main(
+            Players=[num_werewolves, num_villagers],
+            verbose=False,
+            seed=iter,
+            save_logs=False,
+            update_params=update_params,
+            p_focus = p_focus
+        )
+
+        # Retrieve the avg belief
+        exp_avg_belief_werewolves  = stats["avg_belief_villagers_on_werewolves"]
+        exp_avg_belief_werewolves_on_little_girl = stats["avg_belief_werewolves_on_little_girl"]
+        exp_avg_belief_villagers_on_little_girl = stats["avg_belief_villagers_on_little_girl"]
+        
+        # Update mean average arrays
+        mean_avg_beliefs_villagers_on_werewolves[iter, :len(exp_avg_belief_werewolves)] = exp_avg_belief_werewolves
+        mean_avg_beliefs_werewolves_on_little_girl[iter, :len(exp_avg_belief_werewolves_on_little_girl)] = exp_avg_belief_werewolves_on_little_girl
+        mean_avg_beliefs_villagers_on_little_girl[iter, :len(exp_avg_belief_villagers_on_little_girl)] = exp_avg_belief_villagers_on_little_girl
+
+    # Average the arrays
+    mean_avg_beliefs_villagers_on_werewolves = np.nanmean(mean_avg_beliefs_villagers_on_werewolves, axis=0)
+    mean_avg_beliefs_werewolves_on_little_girl = np.nanmean(mean_avg_beliefs_werewolves_on_little_girl, axis=0)
+    mean_avg_beliefs_villagers_on_little_girl = np.nanmean(mean_avg_beliefs_villagers_on_little_girl, axis=0)
+
+    # Plot mean average arrays beliefs on werewolves / little_girl
+    plt.plot(range(len(mean_avg_beliefs_villagers_on_werewolves)), mean_avg_beliefs_villagers_on_werewolves, color='red', label="Beliefs villagers on werewolves")
+    plt.plot(range(len(mean_avg_beliefs_werewolves_on_little_girl)), mean_avg_beliefs_werewolves_on_little_girl, color='blue', label="Beliefs werewolves on little girl")
+    plt.plot(range(len(mean_avg_beliefs_villagers_on_little_girl)), mean_avg_beliefs_villagers_on_little_girl, color='green', label="Beliefs villagers on little girl")
+    plt.xlabel('Turn')
+    plt.ylabel('Beliefs')
+    plot_name = f'logs/avg_belief_{p_focus}.pdf'
+    plt.legend()
+    plt.savefig(plot_name, dpi=600, bbox_inches='tight')
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -234,9 +281,11 @@ if __name__ == "__main__":
     parser.add_argument('--ratio', type=float, default=0.1, help='Ratio of werewolves to total players')
     parser.add_argument('--iterations', type=int, default=1000, help='Number of games to simulate')
     parser.add_argument('--p-focus', type=float, help="Add a Little Girl among Villagers with a p_focus", default=None)
+    parser.add_argument('--grid-search', action='store_true', help='Look for the best ratio', default=False)
     parser.add_argument('--phase-plot', action='store_true', help='Generate phase plot', default=False)
     parser.add_argument('--little-girl-plot', action='store_true', help='Generate the little girl analysis', default=False)
-    parser.add_argument('--last_turn', action='store_true', help='Generate the little girl last turn analysis', default=False)
+    parser.add_argument('--last-turn', action='store_true', help='Generate the little girl last turn analysis', default=False)
+    parser.add_argument('--avg-belief', action='store_true', help='Generate the average belief analysis', default=False)
     args = parser.parse_args()
 
     
@@ -259,8 +308,15 @@ if __name__ == "__main__":
             ratio_werewolf=args.ratio,
             nb_iter=args.iterations
         )
-    else:
-        win_ratio, avg_rounds, _, _, _ = simulation(
+    if args.avg_belief:
+        plot_ts_avg_belief(
+            nb_players=args.players,
+            ratio_werewolf=args.ratio,
+            nb_iter=args.iterations, 
+            p_focus=args.p_focus
+        )
+    if args.grid_search:
+        win_ratio, avg_rounds = simulation(
             nb_players=args.players,
             ratio_werewolf=args.ratio,
             nb_iter=args.iterations,

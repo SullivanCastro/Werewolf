@@ -8,3 +8,4 @@ report.synctex.gz
 *test*
 logs
 *pyc
+.DS_Store
