@@ -6,7 +6,7 @@ import os
 from utils.logs import save_beliefs
 from agent import LittleGirl
 
-def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_params=[25, 25, 25, 0.3], p_focus=None, save_logs=True):
+def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_params=[25, 6, 6, 0.3], p_focus=None, save_logs=True):
     """
     Run a complete werewolf game simulation.
     
@@ -58,6 +58,10 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
         eliminated_night, eliminated_role = game.night_shift()
         if verbose:
             print(f"🌙 Werewolves eliminated villager {eliminated_night} who was a {eliminated_role}")
+
+        # Check if the little girl is alive
+        if isinstance(game.alive.get(0, False), LittleGirl):
+            stats["last_turn_little_girl"] += 1
         
         # Check win condition after night
         winner = game.check_game_over()
@@ -68,7 +72,11 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
         # Average beliefs on werewolves
         beliefs_werewolves = np.zeros(len(game.werewolves_id))
         for villager_id in game.villagers_id:
-            beliefs_werewolves += np.nan_to_num(game.alive[villager_id].beliefs[game.werewolves_id], nan=1) / len(game.villagers_id)
+
+            if isinstance(game.alive[villager_id], LittleGirl):
+                continue
+
+            beliefs_werewolves += game.alive[villager_id].beliefs[game.werewolves_id] / len(game.villagers_id)
         stats["avg_belief_villagers_on_werewolves"].append(np.mean(beliefs_werewolves))
 
         # Average beliefs on Little Girl
@@ -80,9 +88,9 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
                 continue
             
             if alive_player_id in game.werewolves_id:
-                belief_werewolves_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=1))
+                belief_werewolves_on_little_girl.append(alive_player.beliefs[0])
             else:
-                belief_villagers_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=0))
+                belief_villagers_on_little_girl.append(alive_player.beliefs[0])
 
         stats["avg_belief_werewolves_on_little_girl"].append(np.mean(belief_werewolves_on_little_girl))
         stats["avg_belief_villagers_on_little_girl"].append(np.mean(belief_villagers_on_little_girl))
@@ -95,6 +103,10 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
         if verbose:
             print(f"☀️ Village eliminated player {eliminated_day} who was a {target_type} !")
 
+        # Check if the little girl is alive
+        if isinstance(game.alive.get(0, False), LittleGirl):
+            stats["last_turn_little_girl"] += 1
+
         # Check win condition after day
         winner = game.check_game_over()
         if winner:
@@ -104,7 +116,11 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
         # Average beliefs on werewolves
         beliefs_werewolves = np.zeros(len(game.werewolves_id))
         for villager_id in game.villagers_id:
-            beliefs_werewolves += np.nan_to_num(game.alive[villager_id].beliefs[game.werewolves_id], nan=1) / len(game.villagers_id)
+            
+            if isinstance(game.alive[villager_id], LittleGirl):
+                continue
+
+            beliefs_werewolves += game.alive[villager_id].beliefs[game.werewolves_id] / len(game.villagers_id)
         stats["avg_belief_villagers_on_werewolves"].append(np.mean(beliefs_werewolves))
 
         # Average beliefs on Little Girl
@@ -116,21 +132,18 @@ def main(Players = [4, 16], verbose=False, seed=None, log_dir='logs', update_par
                 continue
             
             if alive_player_id in game.werewolves_id:
-                belief_werewolves_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=1))
+                belief_werewolves_on_little_girl.append(alive_player.beliefs[0])
             else:
-                belief_villagers_on_little_girl.append(np.nan_to_num(alive_player.beliefs[0], nan=0))
+                belief_villagers_on_little_girl.append(alive_player.beliefs[0])
 
         stats["avg_belief_werewolves_on_little_girl"].append(np.mean(belief_werewolves_on_little_girl))
         stats["avg_belief_villagers_on_little_girl"].append(np.mean(belief_villagers_on_little_girl))
-
-        
+    
         # Save beliefs after each round
         if save_logs:
             save_beliefs(game, stats['rounds'] + 1, log_dir=log_dir)
             
         stats['rounds'] += 1
-        if isinstance(game.alive.get(0, False), LittleGirl):
-            stats["last_turn_little_girl"] += 1
     
     if verbose:
         print("\n=== Game Over ===")

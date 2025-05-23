@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-def simulation(nb_players=100, ratio_werewolf=0.1, nb_iter=1000, update_params=[23.5, 10, 10, 0.3], p_focus=None, verbose=False):
+def simulation(nb_players=100, ratio_werewolf=0.1, nb_iter=1000, update_params=[25, 6, 6, 0.3], p_focus=None, verbose=False):
     """
     Run multiple simulations of werewolf games and analyze results.
     
@@ -249,9 +249,9 @@ def plot_ts_avg_belief(nb_players=100, ratio_werewolf=0.1, nb_iter=100, p_focus=
         )
 
         # Retrieve the avg belief
-        exp_avg_belief_werewolves  = stats["avg_belief_villagers_on_werewolves"]
+        exp_avg_belief_werewolves                = stats["avg_belief_villagers_on_werewolves"]
         exp_avg_belief_werewolves_on_little_girl = stats["avg_belief_werewolves_on_little_girl"]
-        exp_avg_belief_villagers_on_little_girl = stats["avg_belief_villagers_on_little_girl"]
+        exp_avg_belief_villagers_on_little_girl  = stats["avg_belief_villagers_on_little_girl"]
         
         # Update mean average arrays
         mean_avg_beliefs_villagers_on_werewolves[iter, :len(exp_avg_belief_werewolves)] = exp_avg_belief_werewolves
@@ -264,13 +264,13 @@ def plot_ts_avg_belief(nb_players=100, ratio_werewolf=0.1, nb_iter=100, p_focus=
     mean_avg_beliefs_villagers_on_little_girl = np.nanmean(mean_avg_beliefs_villagers_on_little_girl, axis=0)
 
     # Plot mean average arrays beliefs on werewolves / little_girl
-    plt.plot(range(len(mean_avg_beliefs_villagers_on_werewolves)), mean_avg_beliefs_villagers_on_werewolves, color='red', label="Beliefs villagers on werewolves")
-    plt.plot(range(len(mean_avg_beliefs_werewolves_on_little_girl)), mean_avg_beliefs_werewolves_on_little_girl, color='blue', label="Beliefs werewolves on little girl")
-    plt.plot(range(len(mean_avg_beliefs_villagers_on_little_girl)), mean_avg_beliefs_villagers_on_little_girl, color='green', label="Beliefs villagers on little girl")
+    plt.plot(range(len(mean_avg_beliefs_villagers_on_werewolves)), mean_avg_beliefs_villagers_on_werewolves, color='red', label=r"$S_{\text{Villagers} \to \text{Werewolves}}$")
+    plt.plot(range(len(mean_avg_beliefs_werewolves_on_little_girl)), mean_avg_beliefs_werewolves_on_little_girl, color='blue', label=r'$S_{\text{Werewolves} \to \text{Little Girl}}$')
+    plt.plot(range(len(mean_avg_beliefs_villagers_on_little_girl)), mean_avg_beliefs_villagers_on_little_girl, color='green', label=r'$S_{\text{Villagers} \to \text{Little Girl}}$')
     plt.xlabel('Turn')
-    plt.ylabel('Beliefs')
+    plt.ylabel('Kill will')
     plot_name = f'logs/avg_belief_{p_focus}.pdf'
-    plt.legend()
+    plt.legend(loc='upper right')
     plt.savefig(plot_name, dpi=600, bbox_inches='tight')
     plt.close()
 
